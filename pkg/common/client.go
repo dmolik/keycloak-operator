@@ -183,6 +183,7 @@ func (c *Client) RemoveUserFromGroup(userID, group, realmName string) error {
 func (c *Client) GetUserGroups(realmName, userID string) ([]string, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s/users/%s/groups?first=0&max=20", realmName, userID), "user-groups", func(body []byte) (T, error) {
 		var groups []group
+		logrus.Infof("User groups: %s", string(body))
 		err := json.Unmarshal(body, &groups)
 		return groups, err
 	})

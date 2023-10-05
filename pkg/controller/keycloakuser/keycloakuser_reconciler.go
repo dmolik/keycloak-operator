@@ -234,6 +234,7 @@ func SyncGroupForUser(state *common.UserState, group string, realmName string) [
 	var assignGroups []common.ClusterAction
 	var removeGroups []common.ClusterAction
 
+	existingGroups := state.GetUserGroups()
 	// Group requested but not assigned?
 	if !containsGroup(state.User.Groups, group) {
 		assignGroups = append(assignGroups, &common.AssignUserGroupAction{
@@ -244,9 +245,7 @@ func SyncGroupForUser(state *common.UserState, group string, realmName string) [
 		})
 	}
 
-	// state.GetUserGroups()
-	// common.GetUserGroups(state.User.ID, realmName)
-	for _, group := range state.GetUserGroups() {
+	for _, group := range existingGroups {
 		// Group assigned but not requested?
 		if !containsGroup(state.User.Groups, group) {
 			removeGroups = append(removeGroups, &common.RemoveUserGroupAction{
