@@ -246,7 +246,7 @@ func SyncGroupForUser(state *common.UserState, group string, realmName string) [
 
 	// state.GetUserGroups()
 	// common.GetUserGroups(state.User.ID, realmName)
-	for _, group := range state.User.Groups {
+	for _, group := range state.GetUserGroups() {
 		// Group assigned but not requested?
 		if !containsGroup(state.User.Groups, group) {
 			removeGroups = append(removeGroups, &common.RemoveUserGroupAction{
