@@ -12,6 +12,8 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 ##LABELS
 LABEL org.opencontainers.image.source=https://github.com/gulfcoastdevops/keycloak-operator
+LABEL org.opencontainers.image.authors="Dan Molik"
+LABEL org.opencontainers.image.description="Keycloak Operator for Kubernetes"
 
 RUN microdnf update && microdnf clean all && rm -rf /var/cache/yum/*
 
