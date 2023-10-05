@@ -181,13 +181,13 @@ func (c *Client) RemoveUserFromGroup(userID, group, realmName string) error {
 }
 
 func (c *Client) GetUserGroups(realmName, userID string) ([]string, error) {
-	var groups []group
-	_, err := c.get(fmt.Sprintf("realms/%s/users/%s/groups", realmName, userID), "user-groups", func(body []byte) (T, error) {
+	result, err := c.get(fmt.Sprintf("realms/%s/users/%s/groups?first=0,max=20", realmName, userID), "user-groups", func(body []byte) (T, error) {
+		var groups []group
 		err := json.Unmarshal(body, &groups)
-		return nil, err
+		return groups, err
 	})
 	var groupNames []string
-	for _, group := range groups {
+	for _, group := range result.([]group) {
 		groupNames = append(groupNames, group.Name)
 	}
 	return groupNames, err
