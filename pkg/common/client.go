@@ -160,7 +160,7 @@ type UserGroup struct {
 }
 
 func (c *Client) AddUserToGroup(userID, group, realmName string) error {
-	groupID, err := c.getGroupID(group, realmName)
+	groupID, err := c.getGroupID(realmName, group)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (c *Client) AddUserToGroup(userID, group, realmName string) error {
 }
 
 func (c *Client) RemoveUserFromGroup(userID, group, realmName string) error {
-	groupID, err := c.getGroupID(group, realmName)
+	groupID, err := c.getGroupID(realmName, group)
 	if err != nil {
 		return err
 	}
