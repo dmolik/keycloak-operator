@@ -88,6 +88,7 @@ func (i *KeycloakuserReconciler) getKeycloakUserDesiredState(state *common.UserS
 		// Sync the requested roles
 		actions = append(actions, i.getUserRealmRolesDesiredState(state, cr)...)
 		actions = append(actions, i.getUserClientRolesDesiredState(state, cr)...)
+		actions = append(actions, i.getUserGroupRolesDesiredState(state, cr)...)
 	}
 
 	return actions
@@ -146,6 +147,19 @@ func GetUserClientRolesDesiredState(state *common.UserState, clientRoles map[str
 	}
 
 	return actions
+}
+
+func GetUserGroupRolesDesiredState(state *common.UserState, groups []string, realmName string) []common.ClusterAction {
+	actions := []common.ClusterAction{}
+
+	for _, group := range groups {
+		actions = append(actions, SyncGroupForUser(state, group, realmName)...)
+	}
+	return actions
+}
+
+func (i *KeycloakuserReconciler) getUserGroupRolesDesiredState(state *common.UserState, cr *v1alpha1.KeycloakUser) []common.ClusterAction {
+	return GetUserGroupRolesDesiredState(state, cr.Spec.User.Groups, i.Realm.Spec.Realm.Realm)
 }
 
 func (i *KeycloakuserReconciler) getUserSecretDesiredState(state *common.UserState, cr *v1alpha1.KeycloakUser) common.ClusterAction {
@@ -214,6 +228,44 @@ func SyncRolesForClient(state *common.UserState, clientID string, clientRoles ma
 	}
 
 	return append(assignRoles, removeRoles...)
+}
+
+func SyncGroupForUser(state *common.UserState, group string, realmName string) []common.ClusterAction {
+	var assignGroups []common.ClusterAction
+	var removeGroups []common.ClusterAction
+
+	// Group requested but not assigned?
+	if !containsGroup(state.User.Groups, group) {
+		assignGroups = append(assignGroups, &common.AssignUserGroupAction{
+			UserID: state.User.ID,
+			Group:  group,
+			Realm:  realmName,
+			Msg:    fmt.Sprintf("assign group %v to user %v", group, state.User.UserName),
+		})
+	}
+
+	for _, group := range state.User.Groups {
+		// Group assigned but not requested?
+		if !containsGroup(state.User.Groups, group) {
+			removeGroups = append(removeGroups, &common.RemoveUserGroupAction{
+				UserID: state.User.ID,
+				Group:  group,
+				Realm:  realmName,
+				Msg:    fmt.Sprintf("remove group %v from user %v", group, state.User.UserName),
+			})
+		}
+	}
+
+	return append(assignGroups, removeGroups...)
+}
+
+func containsGroup(list []string, group string) bool {
+	for _, item := range list {
+		if item == group {
+			return true
+		}
+	}
+	return false
 }
 
 func containsRole(list []*v1alpha1.KeycloakUserRole, id string) bool {

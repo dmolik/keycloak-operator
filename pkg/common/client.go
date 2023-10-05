@@ -153,6 +153,33 @@ func (c *Client) CreateUserRealmRole(role *v1alpha1.KeycloakUserRole, realmName,
 	)
 }
 
+type UserGroup struct {
+	UserID  string `json:"userId"`
+	GroupID string `json:"groupId"`
+	Realm   string `json:"realm"`
+}
+
+func (c *Client) AddUserToGroup(userID, group, realmName string) error {
+	groupID, err := c.getGroupID(group, realmName)
+	if err != nil {
+		return err
+	}
+	userGroup := &UserGroup{
+		UserID:  userID,
+		GroupID: groupID,
+		Realm:   realmName,
+	}
+	return c.update(userGroup, fmt.Sprintf("realms/%s/users/%s/groups/%s", realmName, userID, groupID), "user-group")
+}
+
+func (c *Client) RemoveUserFromGroup(userID, group, realmName string) error {
+	groupID, err := c.getGroupID(group, realmName)
+	if err != nil {
+		return err
+	}
+	return c.delete(fmt.Sprintf("realms/%s/users/%s/groups/%s", realmName, userID, groupID), "user-group", nil)
+}
+
 func (c *Client) CreateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName, executionID string) (string, error) {
 	return c.create(authenticatorConfig, fmt.Sprintf("realms/%s/authentication/executions/%s/config", realmName, executionID), "AuthenticatorConfig")
 }
@@ -845,6 +872,35 @@ func (c *Client) GetServiceAccountUser(realmName, clientID string) (*v1alpha1.Ke
 	return ret, err
 }
 
+type group struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
+func (c *Client) getGroupID(realmName, groupName string) (string, error) {
+	first := 0
+	max := 30
+	result, err := c.get(fmt.Sprintf("realms/%s/groups?first=%d&max=%d", realmName, first, max), "groups", func(body []byte) (T, error) {
+		var groups []group
+		err := json.Unmarshal(body, &groups)
+		return groups, err
+	})
+	if err != nil {
+		return "", err
+	}
+	if result == nil {
+		return "", nil
+	}
+
+	for _, g := range result.([]group) {
+		if g.Name == groupName {
+			return g.ID, nil
+		}
+	}
+	return "", err
+}
+
 // login requests a new auth token from Keycloak
 func (c *Client) login(user, pass string) error {
 	form := url.Values{}
@@ -974,6 +1030,8 @@ type KeycloakInterface interface {
 	UpdateUser(specUser *v1alpha1.KeycloakAPIUser, realmName string) error
 	DeleteUser(userID, realmName string) error
 	ListUsers(realmName string) ([]*v1alpha1.KeycloakAPIUser, error)
+	AddUserToGroup(userID, groupID, realmName string) error
+	RemoveUserFromGroup(userID, groupID, realmName string) error
 
 	CreateIdentityProvider(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) (string, error)
 	GetIdentityProvider(alias, realmName string) (*v1alpha1.KeycloakIdentityProvider, error)
@@ -1006,7 +1064,7 @@ var _ KeycloakInterface = &Client{}
 
 //go:generate moq -out keycloakClientFactory_moq.go . KeycloakClientFactory
 
-//KeycloakClientFactory interface
+// KeycloakClientFactory interface
 type KeycloakClientFactory interface {
 	AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error)
 }
