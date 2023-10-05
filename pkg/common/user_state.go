@@ -17,6 +17,7 @@ type UserState struct {
 	AvailableClientRoles map[string][]*v1alpha1.KeycloakUserRole
 	AvailableRealmRoles  []*v1alpha1.KeycloakUserRole
 	Clients              []*v1alpha1.KeycloakAPIClient
+	Groups               []string
 	Secret               *v1.Secret
 	Keycloak             v1alpha1.Keycloak
 	Context              context.Context
@@ -55,6 +56,11 @@ func (i *UserState) ReadWithExistingAPIUser(keycloakClient KeycloakInterface, us
 	}
 
 	err = i.readClientRoles(keycloakClient, realm.Spec.Realm.Realm)
+	if err != nil {
+		return err
+	}
+
+	err = i.readUserGroups(keycloakClient, realm.Spec.Realm.Realm)
 	if err != nil {
 		return err
 	}
@@ -164,4 +170,17 @@ func (i *UserState) GetClientByID(clientID string) *v1alpha1.KeycloakAPIClient {
 		}
 	}
 	return nil
+}
+
+func (i *UserState) readUserGroups(client KeycloakInterface, realm string) error {
+	groups, err := client.GetUserGroups(realm, i.User.ID)
+	if err != nil {
+		return err
+	}
+	i.Groups = groups
+	return nil
+}
+
+func (i *UserState) GetUserGroups() []string {
+	return i.Groups
 }

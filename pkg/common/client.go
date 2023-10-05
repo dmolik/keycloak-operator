@@ -180,6 +180,19 @@ func (c *Client) RemoveUserFromGroup(userID, group, realmName string) error {
 	return c.delete(fmt.Sprintf("realms/%s/users/%s/groups/%s", realmName, userID, groupID), "user-group", nil)
 }
 
+func (c *Client) GetUserGroups(realmName, userID string) ([]string, error) {
+	var groups []group
+	_, err := c.get(fmt.Sprintf("realms/%s/users/%s/groups", realmName, userID), "user-groups", func(body []byte) (T, error) {
+		err := json.Unmarshal(body, &groups)
+		return nil, err
+	})
+	var groupNames []string
+	for _, group := range groups {
+		groupNames = append(groupNames, group.Name)
+	}
+	return groupNames, err
+}
+
 func (c *Client) CreateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName, executionID string) (string, error) {
 	return c.create(authenticatorConfig, fmt.Sprintf("realms/%s/authentication/executions/%s/config", realmName, executionID), "AuthenticatorConfig")
 }
@@ -1032,6 +1045,7 @@ type KeycloakInterface interface {
 	ListUsers(realmName string) ([]*v1alpha1.KeycloakAPIUser, error)
 	AddUserToGroup(userID, groupID, realmName string) error
 	RemoveUserFromGroup(userID, groupID, realmName string) error
+	GetUserGroups(realmName, userID string) ([]string, error)
 
 	CreateIdentityProvider(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) (string, error)
 	GetIdentityProvider(alias, realmName string) (*v1alpha1.KeycloakIdentityProvider, error)

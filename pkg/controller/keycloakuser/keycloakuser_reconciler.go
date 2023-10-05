@@ -88,7 +88,7 @@ func (i *KeycloakuserReconciler) getKeycloakUserDesiredState(state *common.UserS
 		// Sync the requested roles
 		actions = append(actions, i.getUserRealmRolesDesiredState(state, cr)...)
 		actions = append(actions, i.getUserClientRolesDesiredState(state, cr)...)
-		actions = append(actions, i.getUserGroupRolesDesiredState(state, cr)...)
+		actions = append(actions, i.getUserGroupsDesiredState(state, cr)...)
 	}
 
 	return actions
@@ -149,7 +149,7 @@ func GetUserClientRolesDesiredState(state *common.UserState, clientRoles map[str
 	return actions
 }
 
-func GetUserGroupRolesDesiredState(state *common.UserState, groups []string, realmName string) []common.ClusterAction {
+func GetUserGroupsDesiredState(state *common.UserState, groups []string, realmName string) []common.ClusterAction {
 	actions := []common.ClusterAction{}
 
 	for _, group := range groups {
@@ -158,8 +158,8 @@ func GetUserGroupRolesDesiredState(state *common.UserState, groups []string, rea
 	return actions
 }
 
-func (i *KeycloakuserReconciler) getUserGroupRolesDesiredState(state *common.UserState, cr *v1alpha1.KeycloakUser) []common.ClusterAction {
-	return GetUserGroupRolesDesiredState(state, cr.Spec.User.Groups, i.Realm.Spec.Realm.Realm)
+func (i *KeycloakuserReconciler) getUserGroupsDesiredState(state *common.UserState, cr *v1alpha1.KeycloakUser) []common.ClusterAction {
+	return GetUserGroupsDesiredState(state, cr.Spec.User.Groups, i.Realm.Spec.Realm.Realm)
 }
 
 func (i *KeycloakuserReconciler) getUserSecretDesiredState(state *common.UserState, cr *v1alpha1.KeycloakUser) common.ClusterAction {
@@ -244,6 +244,8 @@ func SyncGroupForUser(state *common.UserState, group string, realmName string) [
 		})
 	}
 
+	// state.GetUserGroups()
+	// common.GetUserGroups(state.User.ID, realmName)
 	for _, group := range state.User.Groups {
 		// Group assigned but not requested?
 		if !containsGroup(state.User.Groups, group) {
