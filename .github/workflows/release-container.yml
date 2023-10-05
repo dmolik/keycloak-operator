@@ -14,7 +14,7 @@ concurrency: keycloak-operator-container-release
 
 jobs:
   publish:
-    if: github.repository == 'gulfcoastdevops/keycloak-operator'
+    if: github.repository == 'dmolik/keycloak-operator'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
