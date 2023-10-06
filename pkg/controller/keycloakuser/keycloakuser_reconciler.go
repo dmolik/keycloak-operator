@@ -151,10 +151,8 @@ func GetUserClientRolesDesiredState(state *common.UserState, clientRoles map[str
 
 func GetUserGroupsDesiredState(state *common.UserState, groups []string, realmName string) []common.ClusterAction {
 	actions := []common.ClusterAction{}
+	actions = append(actions, SyncGroupForUser(state, groups, realmName)...)
 
-	for _, group := range groups {
-		actions = append(actions, SyncGroupForUser(state, group, realmName)...)
-	}
 	return actions
 }
 
@@ -230,24 +228,27 @@ func SyncRolesForClient(state *common.UserState, clientID string, clientRoles ma
 	return append(assignRoles, removeRoles...)
 }
 
-func SyncGroupForUser(state *common.UserState, group string, realmName string) []common.ClusterAction {
+func SyncGroupForUser(state *common.UserState, groups []string, realmName string) []common.ClusterAction {
 	var assignGroups []common.ClusterAction
 	var removeGroups []common.ClusterAction
 
-	existingGroups := state.GetUserGroups()
+	existingGroups := state.Groups
+	syncGroups := groups
 	// Group requested but not assigned?
-	if !containsGroup(state.User.Groups, group) {
-		assignGroups = append(assignGroups, &common.AssignUserGroupAction{
-			UserID: state.User.ID,
-			Group:  group,
-			Realm:  realmName,
-			Msg:    fmt.Sprintf("assign group %v to user %v", group, state.User.UserName),
-		})
+	for _, group := range syncGroups {
+		if !containsGroup(existingGroups, group) {
+			assignGroups = append(assignGroups, &common.AssignUserGroupAction{
+				UserID: state.User.ID,
+				Group:  group,
+				Realm:  realmName,
+				Msg:    fmt.Sprintf("assign group %v to user %v", group, state.User.UserName),
+			})
+		}
 	}
 
 	for _, group := range existingGroups {
 		// Group assigned but not requested?
-		if !containsGroup(state.User.Groups, group) {
+		if !containsGroup(syncGroups, group) {
 			removeGroups = append(removeGroups, &common.RemoveUserGroupAction{
 				UserID: state.User.ID,
 				Group:  group,
